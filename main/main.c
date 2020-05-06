@@ -109,49 +109,13 @@ esp_err_t read_from_client (int client_fd) {
         }
         else if (    strncmp(method_start_p, "GET", strlen("GET")) == 0 && 
                      strncmp(uri_start_p, "/ ", strlen("/ ")) == 0          ) {
-            char content_stream[] = "<!DOCTYPE html>" 
-                                    "<html>"    
-                                    "<head runat=\"server\">"    
-                                    "    <title>Server Sent Events</title>"      
-                                    "</head>"    
-                                    "<script>"    
-                                    "function initialize() {    "
-                                    "    if (window.EventSource == undefined) {    "
-                                    "        document.getElementById('OutputDiv').innerHTML = \"Your browser doesn\'t support Server Side Events.\"; "    
-                                    "        return;    "
-                                    "    }    "
-                                    "    var source = new EventSource(\'event\');    "
-                                    "    source.onopen = function (event) {    "
-                                    "        document.getElementById(\'OutputDiv\').innerHTML += \'Connection Opened.<br>\';   " 
-                                    "    };    "
-                                    "    source.onerror = function (event) {    "
-                                    "        if (event.eventPhase == EventSource.CLOSED) {  "  
-                                    "            document.getElementById(\'OutputDiv\').innerHTML += \'Connection Closed.<br>\'; "   
-                                    "        }    "
-                                    "    };    "
-                                    "    source.onmessage = function (event) { " 
-                                    "       var data_str; "
-                                    "       data_str = event.data.replace(\"[0;31m\", \"<span style='color:red'>\"); "
-                                    "       data_str = data_str.replace(\"[0;32m\", \"<span style='color:green'>\"); "
-                                    "       data_str = data_str.replace(\"[0;33m\", \"<span style='color:yellow'>\"); "
-                                    "       data_str = data_str.replace(\"[0m\", \"</span>\"); "
-                                    "       var objDiv = document.getElementById('OutputDiv'); "
-                                    "       objDiv.innerHTML += data_str + '<br>'; " 
-                                    "       objDiv.scrollTop = objDiv.scrollHeight; " 
-                                    "    };"    
-                                    "}"    
-                                    "</script>" 
-                                    "<body  onload=\"initialize()\">"   
-                                    "    <form id=\"form1\" runat=\"server\">"    
-                                    "        <div id=\"OutputDiv\" style=\"font: 0.6em courier; overflow-y: auto; height:400px;\">"    
-                                    "        </div>"    
-                                    "    </form>"    
-                                    "</body>"    
-                                    "</html>";   
 
-            len = sprintf(buffer, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n", sizeof(content_stream)-1);
+            extern const char sse_html_start[] asm("_binary_sse_html_gz_start");
+            extern const char sse_html_end[] asm("_binary_sse_html_gz_end");
+
+            len = sprintf(buffer, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Encoding: gzip\r\n\r\n", (sse_html_end-sse_html_start));
             send(client_fd, buffer, len, 0);
-            send(client_fd, content_stream, sizeof(content_stream)-1, 0);
+            send(client_fd, sse_html_start, (sse_html_end-sse_html_start), 0);
         }
         else {
             len = sprintf(buffer, "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
